@@ -1,39 +1,28 @@
-// Backend/routes/chatRoutes.js
 const express = require('express');
-const router = express.Router();
-const carsData = require('../data/usedCars.json');
+const router = express.Router(); // Create a router
 
-// Test route
-router.get('/test', (req, res) => {
-  res.json({ message: 'Chat route is working!' });
-});
+const { OpenAI } = require('openai');
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Route to fetch all cars
-router.get('/cars', (req, res) => {
-  res.json(carsData);
-});
-
-// Simple chatbot route
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { message } = req.body;
 
   if (!message) return res.status(400).json({ reply: 'No message received.' });
 
-  const lowerMsg = message.toLowerCase();
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo', // or gpt-4
+      messages: [
+        { role: 'system', content: 'You are a car sales assistant for UAE. Answer based on used car data.' },
+        { role: 'user', content: message }
+      ]
+    });
 
-  if (lowerMsg.includes('suv')) {
-    const suvs = carsData.filter(car => car['bodyType']?.toLowerCase().includes('suv'));
-    return res.json({ reply: `Here are some SUVs:`, results: suvs.slice(0, 5) });
+    const reply = completion.choices[0].message.content;
+    res.json({ reply });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ reply: 'Something went wrong while contacting OpenAI.' });
   }
-
-  if (lowerMsg.includes('cheap') || lowerMsg.includes('budget')) {
-    const cheapCars = carsData
-      .filter(car => parseFloat(car.price) < 20000)
-      .slice(0, 5);
-    return res.json({ reply: `Here are some budget-friendly cars:`, results: cheapCars });
-  }
-
-  res.json({ reply: 'Sorry, I didn’t get that. Try asking about SUVs, sedans, or budget cars!' });
 });
-
 module.exports = router;
