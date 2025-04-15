@@ -1,0 +1,119 @@
+/* frontend/style.css */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+  }
+  
+  .chat-messages {
+    background-color: #f8f9fa;
+    height: calc(100vh - 150px);
+  }
+  
+  .message {
+    max-width: 85%;
+    margin-bottom: 15px;
+  }
+  
+  .message-content {
+    display: flex;
+    align-items: flex-start;
+  }
+  
+  .message-icon {
+    background-color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+  }
+  
+  .user-message {
+    margin-left: auto;
+  }
+  
+  .bot-message {
+    margin-right: auto;
+  }
+  
+  .message-bubble {
+    padding: 12px 15px;
+    border-radius: 18px;
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    word-break: break-word;
+  }
+  
+  .user-message .message-bubble {
+    background-color: #007bff;
+    color: white;
+    border-top-right-radius: 4px;
+  }
+  
+  .bot-message .message-bubble {
+    background-color: white;
+    color: #333;
+    border-top-left-radius: 4px;
+  }
+  
+  .input-area {
+    border-top: 1px solid #e9ecef;
+  }
+  
+  .typing {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    min-width: 60px;
+  }
+  
+  .dot {
+    height: 8px;
+    width: 8px;
+    margin: 0 3px;
+    background-color: #6c757d;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite ease-in-out;
+  }
+  
+  .dot:nth-child(1) {
+    animation-delay: 0s;
+  }
+  
+  .dot:nth-child(2) {
+    animation-delay: 0.3s;
+  }
+  
+  .dot:nth-child(3) {
+    animation-delay: 0.6s;
+  }
+  
+  @keyframes pulse {
+    0% {
+      transform: scale(0.8);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(0.8);
+      opacity: 0.8;
+    }
+  }
+  
+  /* Mobile responsive adjustments */
+  @media (max-width: 576px) {
+    .message {
+      max-width: 95%;
+    }
+    
+    .chat-messages {
+      height: calc(100vh - 140px);
+    }
+  }
