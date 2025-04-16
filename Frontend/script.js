@@ -3,11 +3,11 @@ document.addEventListener('DOMContentLoaded', function () {
   const chatMessages = document.getElementById('chat-messages');
   const messageInput = document.getElementById('message-input');
   const sendButton = document.getElementById('send-button');
+  const micButton = document.getElementById('mic-button');
+  const languageToggle = document.getElementById('language-toggle');
 
-  // Focus the input field when the page loads
-  messageInput.focus();
+  let defaultLang = 'en'; // 'en' or 'ar'
 
-  // Function to add a message to the chat
   function addMessage(text, sender) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}-message mb-3`;
@@ -17,14 +17,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const messageIcon = document.createElement('div');
     messageIcon.className = 'message-icon';
-
     const icon = document.createElement('i');
-    if (sender === 'user') {
-      icon.className = 'fas fa-user text-primary';
-    } else {
-      icon.className = 'fas fa-robot text-success';
-    }
-
+    icon.className = sender === 'user' ? 'fas fa-user text-primary' : 'fas fa-robot text-success';
     messageIcon.appendChild(icon);
 
     const messageBubble = document.createElement('div');
@@ -34,112 +28,110 @@ document.addEventListener('DOMContentLoaded', function () {
     messageContent.appendChild(messageIcon);
     messageContent.appendChild(messageBubble);
     messageDiv.appendChild(messageContent);
-
     chatMessages.appendChild(messageDiv);
-
-    // Scroll to the bottom of the chat
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  // Function to show the typing indicator
   function showTypingIndicator() {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message bot-message mb-3';
-    messageDiv.id = 'typing-indicator';
+    const typing = document.createElement('div');
+    typing.className = 'message bot-message mb-3';
+    typing.id = 'typing-indicator';
 
-    const messageContent = document.createElement('div');
-    messageContent.className = 'message-content';
+    const content = document.createElement('div');
+    content.className = 'message-content';
 
-    const messageIcon = document.createElement('div');
-    messageIcon.className = 'message-icon';
+    const icon = document.createElement('div');
+    icon.className = 'message-icon';
+    icon.innerHTML = '<i class="fas fa-robot text-success"></i>';
 
-    const icon = document.createElement('i');
-    icon.className = 'fas fa-robot text-success';
-    messageIcon.appendChild(icon);
-
-    const messageBubble = document.createElement('div');
-    messageBubble.className = 'message-bubble typing';
-
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble typing';
     for (let i = 0; i < 3; i++) {
       const dot = document.createElement('span');
       dot.className = 'dot';
-      messageBubble.appendChild(dot);
+      bubble.appendChild(dot);
     }
 
-    messageContent.appendChild(messageIcon);
-    messageContent.appendChild(messageBubble);
-    messageDiv.appendChild(messageContent);
-
-    chatMessages.appendChild(messageDiv);
+    content.appendChild(icon);
+    content.appendChild(bubble);
+    typing.appendChild(content);
+    chatMessages.appendChild(typing);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  // Function to remove the typing indicator
   function removeTypingIndicator() {
-    const typingIndicator = document.getElementById('typing-indicator');
-    if (typingIndicator) {
-      typingIndicator.remove();
-    }
+    const typing = document.getElementById('typing-indicator');
+    if (typing) typing.remove();
   }
 
-  // Function to send a message
-  async function sendMessage() {
-    const message = messageInput.value.trim();
-
-    if (message === '') return;
-
-    // Add user message to chat
+  async function sendMessage(message, lang = defaultLang) {
+    if (!message.trim()) return;
     addMessage(message, 'user');
-
-    // Clear input field
     messageInput.value = '';
-
-    // Disable input and button while waiting for response
     messageInput.disabled = true;
     sendButton.disabled = true;
-
-    // Show typing indicator
     showTypingIndicator();
 
     try {
       const response = await fetch('http://localhost:3000/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: message })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, lang })
       });
 
       const data = await response.json();
-
-      // Remove typing indicator
       removeTypingIndicator();
-
-      // Add bot response to chat
       addMessage(data.reply, 'bot');
     } catch (error) {
       console.error('Error:', error);
-
-      // Remove typing indicator
       removeTypingIndicator();
-
-      // Add error message
-      addMessage("Sorry, I'm having trouble connecting to the server. Please try again later.", 'bot');
+      addMessage("Sorry, I'm having trouble connecting to the server.", 'bot');
     } finally {
-      // Re-enable input and button
       messageInput.disabled = false;
       sendButton.disabled = false;
       messageInput.focus();
     }
   }
 
-  // Send message when send button is clicked
-  sendButton.addEventListener('click', sendMessage);
+  sendButton.addEventListener('click', () => {
+    sendMessage(messageInput.value, defaultLang);
+  });
 
-  // Send message when Enter key is pressed
   messageInput.addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-      sendMessage();
+    if (e.key === 'Enter') sendMessage(messageInput.value, defaultLang);
+  });
+
+  // Language toggle
+  languageToggle.addEventListener('click', () => {
+    defaultLang = defaultLang === 'en' ? 'ar' : 'en';
+    alert(`Language switched to ${defaultLang === 'en' ? 'English' : 'Arabic'}`);
+  });
+
+  // Voice Input
+  let recognition;
+  if ('webkitSpeechRecognition' in window) {
+    recognition = new webkitSpeechRecognition();
+    recognition.interimResults = false;
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      const detectedLang = /[\u0600-\u06FF]/.test(transcript) ? 'ar' : 'en';
+      messageInput.value = transcript;
+      sendMessage(transcript, detectedLang);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error', event);
+    };
+  } else {
+    micButton.disabled = true;
+    micButton.title = 'Voice not supported';
+  }
+
+  micButton.addEventListener('click', () => {
+    if (recognition) {
+      recognition.lang = defaultLang === 'ar' ? 'ar-SA' : 'en-US';
+      recognition.start();
     }
   });
 });
