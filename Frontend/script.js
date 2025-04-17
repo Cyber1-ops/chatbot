@@ -98,6 +98,14 @@ function handleSendMessage(event) {
   }
 }
 
+// Handle keyboard events
+function handleKeyDown(event) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    messageForm.dispatchEvent(new Event('submit'));
+  }
+}
+
 // Auto-resize textarea
 function autoResizeTextarea() {
   messageInput.style.height = 'auto';
@@ -111,16 +119,8 @@ function autoResizeTextarea() {
   }
 }
 
-// Handle key down events
-function handleKeyDown(event) {
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    handleSendMessage(event);
-  }
-}
-
 // Send message
-async function sendMessage(content) {
+function sendMessage(content) {
   // Add user message
   const userMessage = {
     id: Date.now().toString(),
@@ -136,64 +136,65 @@ async function sendMessage(content) {
   // Show typing indicator
   showTypingIndicator();
   
+  // Get bot response after a delay
+  setTimeout(() => {
+    generateBotResponse(content);
+  }, 1500);
+}
+
+// Generate bot response
+async function generateBotResponse(userMessage) {
   try {
+    // Show typing indicator
+    showTypingIndicator();
+
+    // Make API call to backend
     const response = await fetch('http://localhost:3000/api/chat', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message: content })
+      body: JSON.stringify({ message: userMessage }),
     });
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const data = await response.json();
-    
-    // Remove typing indicator
-    hideTypingIndicator();
-    
-    // Add bot response
+
+    // Add bot message
     const botMessage = {
       id: (Date.now() + 1).toString(),
       content: data.reply,
       sender: 'bot',
       timestamp: new Date(),
     };
-    
+
     messages.push(botMessage);
+    hideTypingIndicator();
     renderMessages();
     scrollToBottom();
   } catch (error) {
-    console.error('Error:', error);
-    hideTypingIndicator();
+    console.error('Error getting bot response:', error);
     
     // Add error message
     const errorMessage = {
       id: (Date.now() + 1).toString(),
-      content: "Sorry, I'm having trouble connecting to the server. Please try again later.",
+      content: "I'm sorry, I'm having trouble connecting to the server. Please try again later.",
       sender: 'bot',
       timestamp: new Date(),
     };
-    
+
     messages.push(errorMessage);
+    hideTypingIndicator();
     renderMessages();
     scrollToBottom();
   }
 }
 
-// Show typing indicator
-function showTypingIndicator() {
-  isTyping = true;
-  typingIndicator.classList.remove('hidden');
-  scrollToBottom();
-}
-
-// Hide typing indicator
-function hideTypingIndicator() {
-  isTyping = false;
-  typingIndicator.classList.add('hidden');
-}
-
 // Handle image upload
-function handleImageUpload(event) {
+async function handleImageUpload(event) {
   const file = event.target.files[0];
   
   if (file) {
@@ -217,26 +218,69 @@ function handleImageUpload(event) {
     
     // Show typing indicator
     showTypingIndicator();
-    
-    // Simulate bot response after delay
-    setTimeout(() => {
+
+    try {
+      // Create FormData object
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('message', 'Analyze this image');
+
+      // Send image to backend
+      const response = await fetch('http://localhost:3000/api/chat', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Add bot response
       const botMessage = {
         id: (Date.now() + 1).toString(),
-        content: "I've received your image. What would you like to know about it?",
+        content: data.reply,
         sender: 'bot',
         timestamp: new Date(),
       };
       
       messages.push(botMessage);
-      hideTypingIndicator();
-      renderMessages();
-      scrollToBottom();
-      isUploading = false;
-    }, 1500);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      
+      // Add error message
+      const errorMessage = {
+        id: (Date.now() + 1).toString(),
+        content: "I'm sorry, I'm having trouble analyzing the image. Please try again later.",
+        sender: 'bot',
+        timestamp: new Date(),
+      };
+      
+      messages.push(errorMessage);
+    }
+    
+    hideTypingIndicator();
+    renderMessages();
+    scrollToBottom();
+    isUploading = false;
     
     // Reset file input
     event.target.value = '';
   }
+}
+
+// Show typing indicator
+function showTypingIndicator() {
+  isTyping = true;
+  typingIndicator.classList.remove('hidden');
+  scrollToBottom();
+}
+
+// Hide typing indicator
+function hideTypingIndicator() {
+  isTyping = false;
+  typingIndicator.classList.add('hidden');
 }
 
 // Render messages
@@ -284,13 +328,29 @@ function createMessageElement(message) {
 }
 
 // Format time
-function formatTime(date) {
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+function formatTime(timestamp) {
+  return new Intl.DateTimeFormat('en', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(timestamp);
 }
 
 // Scroll to bottom of messages
 function scrollToBottom() {
   chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Clear messages
+function clearMessages() {
+  messages = [
+    {
+      id: Date.now().toString(),
+      content: 'Hello! I am Motoro, your AI assistant. How can I help you today?',
+      sender: 'bot',
+      timestamp: new Date(),
+    }
+  ];
+  renderMessages();
 }
 
 // Initialize the chat

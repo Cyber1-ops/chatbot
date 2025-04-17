@@ -8,7 +8,7 @@ const readStream = fs.createReadStream(filePath, { encoding: 'utf8' });
 
 let buffer = '';
 let count = 0;
-const maxItems = 5;
+const maxItems = 10;
 
 readStream.on('data', (chunk) => {
     buffer += chunk;
