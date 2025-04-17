@@ -72,6 +72,7 @@ function displayCars(cars, startIndex) {
             <p>${car["Overview"].slice(0, 300)}...</p>
           </details>
         </div>
+        <div class="btn btn-primary">Buy</div>
       </div>
     `;
 
