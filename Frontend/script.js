@@ -166,7 +166,7 @@ async function generateBotResponse(userMessage) {
     // Add bot message
     const botMessage = {
       id: (Date.now() + 1).toString(),
-      content: data.reply,
+      content: data.reply.replace(/idncu:\s*\d+/g, ""),
       sender: 'bot',
       timestamp: new Date(),
     };
