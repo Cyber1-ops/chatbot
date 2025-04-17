@@ -1,6 +1,6 @@
 :root {
   --primary: #2E3B55;
-  --secondary: #FF5722;
+  --secondary: #8d22ff;
   --accent: #00BCD4;
   --light: #F8F9FA;
   --dark: #1E2738;
@@ -85,7 +85,7 @@ body {
 
 .chat-container {
   background-color: #f8f9fa;
-  height: calc(100vh - 94px);
+  height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
 }
