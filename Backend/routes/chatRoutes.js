@@ -25,93 +25,9 @@ try {
   throw error;
 }
 
-// Pre-process and cache car data for better performance
-const processedCarsData = carsData.map(car => ({
-  make: car.make?.toLowerCase(),
-  model: car.model,
-  year: parseInt(car.year),
-  price: parseFloat(car.price),
-  mileage: parseFloat(car.mileage),
-  bodyType: car.bodyType?.toLowerCase(),
-  fuelType: car.fuelType?.toLowerCase(),
-  transmission: car.transmission?.toLowerCase(),
-  originalData: car
-}));
-
-// Cache for filtered cars results with memoization
-const getCachedFilteredCars = (message) => {
-  const cacheKey = `filtered_cars_${message.toLowerCase().trim()}`;
-  let filteredCars = cache.get(cacheKey);
-  
-  if (!filteredCars) {
-    filteredCars = getFilteredCars(message);
-    cache.set(cacheKey, filteredCars);
-  }
-  
-  return filteredCars;
-};
-
-// Extract filters from message with optimized regex
-function extractFiltersFromMessage(message) {
-  const lower = message.toLowerCase().trim();
-  const filters = {};
-
-  // Use single regex for body types
-  const bodyTypeMatch = lower.match(/\b(suv|sedan|hatchback|pickup|coupe)\b/);
-  if (bodyTypeMatch) filters.bodyType = bodyTypeMatch[1];
-
-  // Price filtering
-  if (lower.includes('cheap') || lower.includes('budget')) {
-    filters.maxPrice = 20000;
-  } else {
-    const priceMatch = lower.match(/under\s?(\d{2,5})/);
-    if (priceMatch) filters.maxPrice = parseInt(priceMatch[1]);
-  }
-
-  // Year filtering with optimized regex
-  const yearMatch = lower.match(/\b(20\d{2})\b/);
-  if (yearMatch) filters.minYear = parseInt(yearMatch[1]);
-
-  // Mileage filtering
-  const mileageMatch = lower.match(/under\s?(\d{1,5})\s?km/);
-  if (mileageMatch) filters.maxMileage = parseInt(mileageMatch[1]);
-
-  // Fuel type with single regex
-  const fuelMatch = lower.match(/\b(electric|hybrid|petrol|diesel)\b/);
-  if (fuelMatch) filters.fuel = fuelMatch[1];
-
-  // Transmission with single regex
-  const transmissionMatch = lower.match(/\b(automatic|manual)\b/);
-  if (transmissionMatch) filters.transmission = transmissionMatch[1];
-
-  // Brand matching with optimized search
-  const knownBrands = ['toyota', 'nissan', 'honda', 'bmw', 'mercedes', 'kia', 'hyundai', 'ford', 'chevrolet'];
-  const brandMatch = knownBrands.find(brand => lower.includes(brand));
-  if (brandMatch) filters.brand = brandMatch;
-
-  return filters;
-}
-
-// Apply filters with optimized filtering
-function getFilteredCars(message) {
-  const filters = extractFiltersFromMessage(message);
-  
-  return processedCarsData.filter(car => {
-    // Early return for non-matching criteria
-    if (filters.bodyType && !car.bodyType?.includes(filters.bodyType)) return false;
-    if (filters.maxPrice && car.price > filters.maxPrice) return false;
-    if (filters.minYear && car.year < filters.minYear) return false;
-    if (filters.maxMileage && car.mileage > filters.maxMileage) return false;
-    if (filters.fuel && !car.fuelType?.includes(filters.fuel)) return false;
-    if (filters.transmission && !car.transmission?.includes(filters.transmission)) return false;
-    if (filters.brand && !car.make?.includes(filters.brand)) return false;
-    
-    return true;
-  }).map(car => car.originalData);
-}
 
 // Google AI API call with optimizations
-async function queryGoogleAI(message, filteredCars) {
+async function queryGoogleAI(message, cars) {
   try {
     // Validate input
     if (!message || typeof message !== 'string') {
@@ -125,9 +41,14 @@ async function queryGoogleAI(message, filteredCars) {
       return cachedResponse;
     }
 
+    const sanitizedCars = cars.map(car => {
+      const { Overview, ...rest } = car;
+      return rest;
+    });
+    console.log(sanitizedCars.length);
     // Prepare the car data for the prompt
-    const carDataForPrompt = filteredCars.length > 0 
-      ? `Here are the available car listings that match your criteria:\n${JSON.stringify(filteredCars.slice(0, 3), null, 2)}`
+    const carDataForPrompt = sanitizedCars.length > 0 
+      ? `Here are the available car listings that match your criteria:\n${JSON.stringify(sanitizedCars.slice(0, 201), null, 2)}`
       : "No specific car listings match your criteria. I'll provide general advice based on your query.";
 
     const prompt = `
@@ -184,9 +105,15 @@ You are CarExpert, a specialized automotive assistant for the UAE market. Follow
    - Car recommendations: Detailed but concise
    - Complex queries: Focus on key points
 
-${carDataForPrompt}
+8. CUSTOM OUTPUT idncu
+   - FORMAT: 'idncu: %any number%' example: 'idncu: 10'
+   - there has to be single car if more don't display the idncu
+   - if there no car selected do not display the idncu
+   - index is determent from car index in the json array that was uploaded
 
 User question: ${message}
+
+${carDataForPrompt}
 `;
 
     console.log('Sending request to Google AI...');
@@ -279,8 +206,7 @@ router.post('/', async (req, res) => {
   if (!message) return res.status(400).json({ reply: 'No message received.' });
 
   try {
-    const filteredCars = getCachedFilteredCars(message);
-    const reply = await queryGoogleAI(message, filteredCars);
+    const reply = await queryGoogleAI(message, carsData);
     res.json({ reply });
   } catch (error) {
     console.error('Error processing chat request:', error);
