@@ -170,7 +170,8 @@ async function generateBotResponse(userMessage) {
       sender: 'bot',
       timestamp: new Date(),
     };
-
+    sessionStorage.removeItem("lastMessage");
+    sessionStorage.setItem("lastMessage", data.reply);
     messages.push(botMessage);
     hideTypingIndicator();
     renderMessages();
@@ -244,7 +245,6 @@ async function handleImageUpload(event) {
         sender: 'bot',
         timestamp: new Date(),
       };
-      
       messages.push(botMessage);
     } catch (error) {
       console.error('Error uploading image:', error);

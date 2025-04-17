@@ -26,6 +26,9 @@ fetch("../../Backend/data/usedCars.json")
     window.history.replaceState({}, document.title, cleanUrl);
 
     displayPage(currentPage, filteredData);
+    setInterval(() => {
+      doLoop();
+    }, 1000);
   });
 
 // Display a specific page
@@ -86,7 +89,6 @@ function displayCars(cars, startIndex) {
   });
 }
 
-// Render pagination
 function renderPagination(totalItems, currentPage) {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const pagination = document.getElementById('pagination');
@@ -120,24 +122,45 @@ function renderPagination(totalItems, currentPage) {
 
   if (totalPages > maxVisible) {
     if (currentPage <= 3) {
+      startPage = 2;
       endPage = maxVisible;
     } else if (currentPage >= totalPages - 2) {
       startPage = totalPages - maxVisible + 1;
+      endPage = totalPages - 1;
     } else {
       startPage = currentPage - 2;
       endPage = currentPage + 2;
     }
   }
 
-  for (let i = startPage; i <= endPage; i++) {
-    pagination.appendChild(createPageItem(i, i, false, currentPage === i));
-  }
+  // Always show page 1
+  pagination.appendChild(createPageItem(1, 1, false, currentPage === 1));
 
-  if (endPage < totalPages) {
+  // Show "..." if startPage is greater than 2
+  if (startPage > 2) {
     const dots = document.createElement('li');
     dots.className = 'page-item disabled';
     dots.innerHTML = `<span class="page-link">...</span>`;
     pagination.appendChild(dots);
+  }
+
+  // Render middle page numbers
+  for (let i = startPage; i <= endPage; i++) {
+    if (i !== 1 && i !== totalPages) {
+      pagination.appendChild(createPageItem(i, i, false, currentPage === i));
+    }
+  }
+
+  // Show "..." if endPage is less than totalPages - 1
+  if (endPage < totalPages - 1) {
+    const dots = document.createElement('li');
+    dots.className = 'page-item disabled';
+    dots.innerHTML = `<span class="page-link">...</span>`;
+    pagination.appendChild(dots);
+  }
+
+  // Show last page if it's not already included
+  if (totalPages !== 1) {
     pagination.appendChild(createPageItem(totalPages, totalPages, false, currentPage === totalPages));
   }
 
@@ -164,4 +187,17 @@ function setCarIndex(index) {
 function getPageFromIndex(index) {
   if (index < 0) return 1;
   return Math.floor(index / itemsPerPage) + 1;
+}
+
+
+function doLoop() {
+  const index = extractIdncuValue(sessionStorage.getItem("lastMessage"));
+  console.log("logging")
+  setCarIndex(index);
+}
+
+
+function extractIdncuValue(text) {
+  const match = text.match(/idncu:\s*(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
 }
