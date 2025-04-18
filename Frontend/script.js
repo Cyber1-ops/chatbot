@@ -154,7 +154,7 @@ async function generateBotResponse(userMessage) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message: userMessage }),
+      body: JSON.stringify({ message: userMessage, history: messages }),
     });
 
     if (!response.ok) {

@@ -27,7 +27,8 @@ try {
 
 
 // Google AI API call with optimizations
-async function queryGoogleAI(message, cars) {
+async function queryGoogleAI(message, history, cars) {
+  console.log(history);
   try {
     // Validate input
     if (!message || typeof message !== 'string') {
@@ -114,6 +115,8 @@ You are CarExpert, a specialized automotive assistant for the UAE market. Follow
      * Example: If recommending the first car in the array, use 'idncu: 0'
      * Example: If recommending the 15th car in the array, use 'idncu: 14'
    - IMPORTANT: This is a required format for single car recommendations
+
+Messages histroy: ${history}
 
 User question: ${message}
 
@@ -205,12 +208,12 @@ router.post('/', async (req, res) => {
   }
   lastRequestTime = now;
 
-  const { message } = req.body;
+  const { message, history } = req.body;
 
   if (!message) return res.status(400).json({ reply: 'No message received.' });
 
   try {
-    const reply = await queryGoogleAI(message, carsData);
+    const reply = await queryGoogleAI(message, history, carsData);
     res.json({ reply });
   } catch (error) {
     console.error('Error processing chat request:', error);
